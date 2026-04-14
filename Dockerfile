@@ -1,4 +1,4 @@
-FROM node:22-slim AS builder
+FROM node:25-slim AS builder
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci --ignore-scripts
@@ -6,7 +6,7 @@ COPY tsconfig.json ./
 COPY src/ src/
 RUN npx tsc
 
-FROM node:22-slim
+FROM node:25-slim
 WORKDIR /app
 ENV NODE_ENV=production
 RUN addgroup --system ecg && adduser --system --ingroup ecg ecg
