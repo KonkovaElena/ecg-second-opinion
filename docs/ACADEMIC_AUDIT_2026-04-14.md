@@ -12,6 +12,31 @@ ECG Second Opinion is a clinician-in-the-loop control plane for ECG second-opini
 
 The current implementation is best described as a workflow orchestrator with a transparent inference seam rather than a full diagnostic platform. The metadata-fallback inference adapter is openly tagged as a stub, while the domain contracts are already shaped for a later 1D-CNN worker with uncertainty and interpretability outputs.
 
+## Regulatory Assessment
+
+Important correction:
+
+- the repository should remain positioned as a **research-use-only workflow prototype**
+- it should **not** describe a future clinically deployed ECG-signal-analysis version as a **non-device CDS** function
+
+Why this matters:
+
+- **21 U.S.C. § 360j(o)(1)(E)** excludes certain CDS software from the device definition only when the statutory conditions are met
+- the **January 2026 FDA guidance on Clinical Decision Support Software** clarifies FDA's current interpretation of those non-device CDS criteria
+- the statutory language explicitly carves out software intended to acquire, process, or analyze a medical image or a pattern or signal from a signal acquisition system for the covered CDS pathway
+
+Applied to this project:
+
+- the current repository is still a research prototype with a transparent metadata fallback stub
+- the **planned production architecture** explicitly targets 1D-CNN analysis of ECG signal data
+- a clinically deployed version should therefore be planned on a **device-regulated SaMD pathway**, not on a non-device CDS marketing claim
+
+Scope caveat:
+
+- from the repository alone, it is not responsible to hard-code a final FDA class outcome
+- `510(k)` versus `De Novo` depends on intended use, predicate strategy, risk framing, and final claims
+- the correct immediate action is to remove the non-device CDS claim and keep the project framed as RUO until a real regulatory strategy exists
+
 ## Verified Metrics
 
 | Metric | Verified value | Evidence source |
@@ -20,7 +45,7 @@ The current implementation is best described as a workflow orchestrator with a t
 | Source LOC | 1,978 | PowerShell line count |
 | Test files | 5 | PowerShell file inventory |
 | Test LOC | 1,442 | PowerShell line count |
-| Passing tests | 94 | `.jest-results.json` |
+| Passing tests | 95 | `.jest-results.json` |
 | Test suites | 5 | `.jest-results.json` |
 | App routes in `app.ts` | 12 | direct route scan |
 | Health routes in `health.ts` | 2 | direct route scan |
@@ -34,7 +59,7 @@ Per-suite verified tests:
 
 | Suite | Passing tests |
 |---|---:|
-| `tests/api.test.ts` | 35 |
+| `tests/api.test.ts` | 36 |
 | `tests/validation.test.ts` | 12 |
 | `tests/safety-policy.test.ts` | 13 |
 | `tests/cases.test.ts` | 25 |
@@ -148,6 +173,12 @@ Verified non-blocking rules include:
 
 Assessment: strong for a research control plane.
 
+Strategic backlog recommended by this audit:
+
+- add a conflict rule for clinically important multi-label ambiguity when probability mass is split across incompatible categories
+- evaluate age- and sex-adjusted thresholds before any clinical deployment claims
+- add GMLP-aligned monitoring for performance drift, concept drift, and data drift once a real model is in the loop
+
 ## Interoperability Assessment
 
 FHIR R4 DiagnosticReport export remains structurally sound for the current stage. The export is useful and coherent, but still not profile-grade interoperability.
@@ -159,6 +190,10 @@ Current gaps that remain valid:
 - no stronger identifier-system strategy yet
 
 These are not blockers for research use, but they are blockers for serious clinical integration.
+
+Additional enterprise gap:
+
+- there is still no inbound or outbound support for **HL7 aECG** or **DICOM Waveform** style ECG exchange, which limits hospital-grade interoperability
 
 ## Observability and Runtime Assessment
 
@@ -172,7 +207,7 @@ Current observability surface:
 
 Current runtime risk that still matters:
 
-- async inference dispatch still uses `setImmediate()` with no durable queue or retry policy
+- async inference dispatch is now abstracted behind an injectable dispatcher seam, but the default implementation still uses `setImmediate()` and there is still no durable queue or retry policy
 - the failure path records `InferenceFailed`, which is good, but there is no dead-letter or replay mechanism
 - the awaiting-review gauge remains mutation-driven rather than query-derived, so it deserves future hardening against drift
 
@@ -204,27 +239,32 @@ This wave materially improved the verified boundary model:
 - added Zod probability-sum invariant for classifier outputs
 - blocked duplicate unresolved safety flags in the aggregate
 - expanded API auth-boundary negative-path coverage
+- introduced an injectable inference-dispatch seam and made synchronous dispatch failures visible as `InferenceFailed` instead of silent acceptance
 
 ## Remaining Deficiencies
 
 | ID | Severity | Area | Finding |
 |---|---|---|---|
-| ECG-D01 | High | Inference runtime | `setImmediate()` dispatch has no durable queue, retry policy, or dead-letter handling |
+| ECG-D01 | High | Inference runtime | the default dispatcher still relies on `setImmediate()` and still lacks durable queueing, retry, and dead-letter handling |
 | ECG-D02 | Medium | Persistence | repository remains in-memory only |
-| ECG-D03 | Medium | Interoperability | FHIR export still lacks coded clinical vocabularies and stronger profile declarations |
-| ECG-D04 | Low | Observability | awaiting-review gauge is mutation-driven rather than derived |
-| ECG-D05 | Low | Operations | shutdown still does not explicitly drain in-flight inference work |
-| ECG-D06 | Low | Logging | there is still no structured request logging middleware |
+| ECG-D03 | High | Regulatory positioning | future ECG-signal-analysis deployment should not be framed as non-device CDS; RUO wording is appropriate until a SaMD strategy exists |
+| ECG-D04 | Medium | Interoperability | FHIR export still lacks coded clinical vocabularies and stronger profile declarations |
+| ECG-D05 | Medium | Enterprise data standards | no HL7 aECG or DICOM Waveform support exists yet |
+| ECG-D06 | Medium | Clinical safety evolution | no multi-diagnosis conflict rule or demographic threshold strategy exists yet |
+| ECG-D07 | Medium | AI lifecycle | no explicit GMLP / drift-monitoring work package exists yet |
+| ECG-D08 | Low | Observability | awaiting-review gauge is mutation-driven rather than derived |
+| ECG-D09 | Low | Operations | shutdown still does not explicitly drain in-flight inference work |
+| ECG-D10 | Low | Logging | there is still no structured request logging middleware |
 
 ## Overall Assessment
 
-Grade: `A`
+Grade: `A-`
 
 Reasoning:
 
 - architecture is disciplined for the project size
 - auth and validation boundaries are stronger than typical research prototypes
 - the safety policy and mandatory review boundary are not superficial; they are encoded in domain behavior
-- the remaining important deficits are operational, not architectural
+- the remaining important deficits are now operational, interoperability-oriented, and regulatory-strategic rather than structural
 
-The project is now materially stronger than the earlier baseline because the most likely correctness and boundary gaps were addressed without inflating complexity.
+The project is publication-ready as a research workflow system, but it is not yet prepared for regulated clinical deployment. The most important next work is durable execution, durable persistence, corrected SaMD-oriented regulatory framing, and stronger medical interoperability.

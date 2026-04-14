@@ -36,6 +36,7 @@ export interface AppDeps {
   readonly inferenceService: IEcgInferenceService;
   readonly safetyPolicy: IEcgClinicalSafetyPolicy;
   readonly config: AppConfig;
+  readonly dispatchInference?: (task: () => void) => void;
 }
 
 // ─── App Factory ────────────────────────────────────────────────────
@@ -46,9 +47,46 @@ export function createApp(deps: AppDeps): express.Application {
   const prefix = config.apiPrefix;
   const internalPrefix = config.internalApiPrefix;
   const inferenceProvider = inferenceService.constructor?.name ?? 'unknown-inference-service';
+  const dispatchInference = deps.dispatchInference ?? ((task: () => void) => {
+    queueMicrotask(task);
+  });
   const operatorAuth = createOperatorAuthMiddleware(config);
   const reviewerAuth = createReviewerAuthMiddleware(config);
   const internalAuth = createInternalAuthMiddleware(config);
+
+  async function recordInferenceFailure(
+    caseId: string,
+    error: unknown,
+    correlationId: string,
+    message: string,
+    latencyMs: number,
+  ): Promise<void> {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const failedCase = await repository.findById(caseId);
+    if (failedCase) {
+      try {
+        failedCase.failInference(errorMessage);
+        await repository.save(failedCase);
+      } catch {
+        // Preserve original logging path if the state transition cannot be applied.
+      }
+    }
+
+    recordEcgInference(inferenceProvider, 'failure', latencyMs);
+    recordEcgInferenceError(
+      inferenceProvider,
+      error instanceof Error ? error.name : 'UnknownInferenceError',
+    );
+
+    console.error(JSON.stringify({
+      level: 'error',
+      message,
+      caseId,
+      correlationId,
+      error: errorMessage,
+      timestamp: new Date().toISOString(),
+    }));
+  }
 
   async function applyInferenceResult(caseId: string, inferenceResult: EcgInferenceResult) {
     const loaded = await repository.findById(caseId);
@@ -166,51 +204,48 @@ export function createApp(deps: AppDeps): express.Application {
       await repository.save(ecgCase);
       ecgCasesCreatedTotal.inc();
 
-      // Step 4: Dispatch inference asynchronously (fire-and-forget)
-      // In production, this publishes to a message queue (RabbitMQ/Redis).
-      // For now, execute inline but respond immediately with 202.
-      setImmediate(async () => {
-        const inferenceStartedAt = Date.now();
-        try {
-          const inferenceResult = await inferenceService.classify(
-            recordingRef,
-            clinicalQuestion,
-            originalInterpretation,
-          );
-          await applyInferenceResult(ecgCase.id, inferenceResult);
-        } catch (inferErr) {
-          const errorMessage = inferErr instanceof Error ? inferErr.message : String(inferErr);
-          const failedCase = await repository.findById(ecgCase.id);
-          if (failedCase) {
+      // Step 4: Dispatch inference asynchronously.
+      // The seam is injectable for durable queues and testable failure handling.
+      try {
+        dispatchInference(() => {
+          void (async () => {
+            const inferenceStartedAt = Date.now();
             try {
-              failedCase.failInference(errorMessage);
-              await repository.save(failedCase);
-            } catch {
-              // Preserve original failure logging path if state transition cannot be applied.
+              const inferenceResult = await inferenceService.classify(
+                recordingRef,
+                clinicalQuestion,
+                originalInterpretation,
+              );
+              await applyInferenceResult(ecgCase.id, inferenceResult);
+            } catch (inferErr) {
+              await recordInferenceFailure(
+                ecgCase.id,
+                inferErr,
+                req.correlationId,
+                'Async inference failed',
+                Date.now() - inferenceStartedAt,
+              );
             }
-          }
+          })();
+        });
+      } catch (dispatchErr) {
+        await recordInferenceFailure(
+          ecgCase.id,
+          dispatchErr,
+          req.correlationId,
+          'Inference dispatch failed',
+          0,
+        );
 
-          recordEcgInference(
-            inferenceProvider,
-            'failure',
-            Date.now() - inferenceStartedAt,
-          );
-          recordEcgInferenceError(
-            inferenceProvider,
-            inferErr instanceof Error ? inferErr.name : 'UnknownInferenceError',
-          );
-
-          const log = {
-            level: 'error',
-            message: 'Async inference failed',
-            caseId: ecgCase.id,
-            correlationId: req.correlationId,
-            error: errorMessage,
-            timestamp: new Date().toISOString(),
-          };
-          console.error(JSON.stringify(log));
-        }
-      });
+        const failedCase = await repository.findById(ecgCase.id);
+        res.status(503).json({
+          caseId: ecgCase.id,
+          status: failedCase?.status ?? 'InferenceFailed',
+          code: 'ECG_INFERENCE_DISPATCH_FAILED',
+          error: dispatchErr instanceof Error ? dispatchErr.message : String(dispatchErr),
+        });
+        return;
+      }
 
       // Respond immediately with 202 Accepted
       res.status(202).json({

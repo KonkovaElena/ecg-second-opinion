@@ -214,7 +214,7 @@ describe('finalize', () => {
     expect(ecgCase.finalOutcome).toBe('withdrawn');
   });
 
-  it('should reject finalization without review (FDA CDS boundary)', () => {
+  it('should reject finalization without review (human oversight boundary)', () => {
     const ecgCase = EcgSecondOpinionCase.submit(makeRecording(), makeQuestion());
     ecgCase.completeInference(makeAssessment(), 'model-v1.0');
 

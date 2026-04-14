@@ -6,9 +6,9 @@ A standalone TypeScript API that orchestrates the full lifecycle of an ECG
 second-opinion case — from intake and quality checks through AI-assisted draft
 generation to mandatory clinician review, finalization, and delivery.
 
-> ⚠️ **Research Use Only.** This system is not a medical device. It must not be
-> used for clinical decision-making without proper regulatory clearance. Every
-> output requires review by a qualified clinician.
+> ⚠️ **Research Use Only.** This repository is not FDA-cleared, not CE-marked,
+> and not approved for clinical use. It must not be used for clinical
+> decision-making. Every output requires review by a qualified clinician.
 
 This repository is not an autonomous diagnostic system. It is a
 **clinician-in-the-loop workflow layer** that enforces human review before
@@ -325,14 +325,14 @@ curl -X POST http://localhost:3100/api/v1/cases/{caseId}/finalize \
 ## Testing
 
 ```
-Tests:       94 passed, 94 total
+Tests:       95 passed, 95 total
 Test Suites: 5 passed, 5 total
 
   tests/config.test.ts          — Config validation and production safety guards (9 tests)
   tests/cases.test.ts           — Aggregate state machine and safety-flag invariants (25 tests)
   tests/safety-policy.test.ts   — Clinical safety rules (13 tests)
   tests/validation.test.ts      — Zod schema validation and probability invariants (12 tests)
-  tests/api.test.ts             — API integration and auth boundary coverage (35 tests)
+  tests/api.test.ts             — API integration and auth boundary coverage (36 tests)
 ```
 
 ```bash
@@ -442,30 +442,52 @@ inference is planned for Wave 2.
 
 ## Regulatory Positioning
 
-This project operates in the **Clinical Decision Support (CDS)** space under
-FDA guidance on CDS software (21 CFR Part 11, 2023 final rule).
+This project lives in the **clinical decision support workflow** space, but it
+should **not** be positioned as relying on the FDA non-device CDS exclusion for
+a future clinically deployed ECG-signal-analysis product.
 
-The system is designed as a **non-device CDS function** under Criterion 4: it
-is intended for review by a qualified clinician who independently evaluates the
-basis for the recommendation. The architectural enforcement — mandatory
-`Reviewed` state before `Finalized` — exists to satisfy this criterion in code,
-not just in policy.
+Under **21 U.S.C. § 360j(o)(1)(E)**, the non-device CDS exclusion does not
+cover software functions intended to acquire, process, or analyze a medical
+image or a pattern or signal from a signal acquisition system. FDA's **January
+2026 final guidance on Clinical Decision Support Software** clarifies that this
+boundary matters when software analyzes signal data while supporting diagnosis
+or treatment decisions.
 
-**Current status**: Research-use-only prototype. Not submitted for any
-regulatory clearance. Not a medical device.
+That is relevant here because the target production architecture includes
+**1D-CNN analysis of ECG signal data**. A clinically deployed version should be
+planned as a **device-regulated SaMD pathway**, not marketed as a non-device
+CDS exemption claim. The enforced `Reviewed` state before `Finalized` still
+matters, but as a human-oversight control, not as a substitute for device
+regulatory obligations.
+
+**Current status**: Research-use-only prototype. Not submitted for FDA review.
+Not CE-marked. Not approved for clinical use.
+
+**Strategic regulatory workstreams for future clinical deployment:**
+
+- U.S. pathway analysis: `510(k)` vs `De Novo` depending on intended claims,
+  predicates, and risk framing
+- AI/ML lifecycle planning, including PCCP-style change governance for future
+  model updates
+- GMLP-aligned lifecycle evidence, including drift monitoring and post-market
+  performance review
+- EU AI Act preparation for medical-deployment documentation, human oversight,
+  and data-governance obligations
 
 ## Roadmap
 
-- [ ] 1D-CNN inference worker (Python, PTB-XL trained)
-- [ ] SQLite persistence layer
-- [ ] PostgreSQL adapter for production
-- [ ] Lead-specific abnormality detection (per-lead findings)
-- [ ] SCP-ECG structured report mapping
-- [ ] Feedback loop (clinician corrections → model training data)
-- [ ] Real-time ECG stream processing
-- [ ] Clinician review workbench UI
-- [ ] Multi-model ensemble with Deep Ensembles uncertainty
-- [ ] Conformal prediction for calibrated prediction sets
+- [ ] Sprint 1 — Infrastructure hardening: replace `setImmediate()` dispatch
+      with a durable queue, bounded retry policy, dead-letter or replay path,
+      and durable PostgreSQL-backed persistence
+- [ ] Sprint 2 — Regulatory and lifecycle compliance: document SaMD-oriented
+      positioning, add GMLP work products, define PCCP-style update governance,
+      and prepare EU AI Act evidence surfaces for medical deployment
+- [ ] Sprint 3 — Clinical interoperability: add SNOMED CT / LOINC coding,
+      strengthen FHIR profile declarations, and plan HL7 aECG / DICOM Waveform
+      support for enterprise environments
+- [ ] Sprint 4 — Real inference stack: implement the Python 1D-CNN worker,
+      MC-Dropout uncertainty, Grad-CAM-style explainability, and drift-aware
+      monitoring around PTB-XL-trained models
 
 ## Community
 
@@ -490,10 +512,10 @@ MIT — see [LICENSE](LICENSE).
 ЭКГ-консультации — от приёма записи и проверки качества через AI-анализ
 до обязательного врачебного заключения, финализации и выдачи.
 
-> ⚠️ **Только для исследовательских целей.** Это не медицинское устройство.
-> Система не может использоваться для принятия клинических решений без
-> соответствующей регуляторной сертификации. Каждый результат требует
-> проверки квалифицированным врачом.
+> ⚠️ **Только для исследовательских целей.** Репозиторий не имеет FDA-clearance,
+> не имеет CE-marking и не предназначен для клинического применения. Система
+> не может использоваться для принятия клинических решений. Каждый результат
+> требует проверки квалифицированным врачом.
 
 ## Что делает проект
 
@@ -586,7 +608,7 @@ npm run dev
 ## Тестирование
 
 ```
-Тесты:    69 пройдено, 69 всего (4 набора)
+Тесты:    95 пройдено, 95 всего (5 наборов)
 ```
 
 ```bash
@@ -602,22 +624,38 @@ doi: 10.15827/0236-235X.142.122-130.
 
 ## Регуляторное позиционирование
 
-Проект работает в области **систем поддержки клинических решений (CDS)**
-по руководству FDA по CDS-ПО (21 CFR Part 11, финальное правило 2023).
-Спроектирован как **не-устройственная CDS-функция** по Критерию 4.
+Проект находится в области **workflow-систем для клинической поддержки
+решений**, но его нельзя описывать как систему, которая в продакшене будет
+полагаться на FDA-исключение для **non-device CDS**.
 
-**Текущий статус**: Исследовательский прототип. Не является медицинским
-устройством.
+Согласно **21 U.S.C. § 360j(o)(1)(E)** и финальному руководству FDA по
+**Clinical Decision Support Software** от **января 2026 года**, исключение не
+распространяется на ПО, которое предназначено для получения, обработки или
+анализа медицинского изображения либо сигнала из системы съёма физиологических
+данных.
+
+Это важно для данного проекта, потому что целевая продакшен-архитектура
+включает **1D-CNN анализ ЭКГ-сигналов**. Поэтому клинически развёрнутая версия
+должна планироваться как **device-regulated SaMD**, а не как non-device CDS.
+Жёсткая обязательность стадии `Reviewed` перед `Finalized` остаётся важной, но
+уже как механизм human oversight, а не как замена регуляторному пути.
+
+**Текущий статус**: Исследовательский прототип. Не подавался на FDA review.
+Не имеет CE-marking. Не допущен к клиническому применению.
 
 ## Дорожная карта
 
-- [ ] 1D-CNN инференс-воркер (Python, PTB-XL)
-- [ ] SQLite / PostgreSQL персистентность
-- [ ] Поканальное обнаружение аномалий
-- [ ] SCP-ECG структурированные отчёты
-- [ ] Обратная связь (коррекции врача → данные для обучения)
-- [ ] Multi-model ансамбль с Deep Ensembles
-- [ ] Conformal prediction для калиброванных предсказаний
+- [ ] Sprint 1 — Инфраструктурное усиление: заменить `setImmediate()` на
+  durable queue, добавить bounded retry / dead-letter path и перейти к
+  долговечной PostgreSQL-персистентности
+- [ ] Sprint 2 — Комплаенс и жизненный цикл модели: зафиксировать SaMD-путь,
+  подготовить GMLP-артефакты, PCCP-подобное управление обновлениями и
+  evidence-поверхность под EU AI Act для медицинского применения
+- [ ] Sprint 3 — Медицинская интероперабельность: добавить SNOMED CT / LOINC,
+  усилить FHIR profile declarations и спланировать HL7 aECG / DICOM
+  Waveform для enterprise-интеграций
+- [ ] Sprint 4 — Реальный inference stack: Python 1D-CNN worker,
+  MC-Dropout, Grad-CAM/XAI и drift-aware monitoring для моделей на PTB-XL
 
 ## Лицензия
 

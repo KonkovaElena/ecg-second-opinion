@@ -137,7 +137,7 @@ export class EcgSecondOpinionCase {
   /**
    * AwaitingReview → Reviewed
    * Clinician (cardiologist, electrophysiologist) reviews the AI draft.
-   * FDA CDS compliance: human-in-the-loop is mandatory.
+    * Human oversight is mandatory before any case can be finalized.
    */
   completeHumanReview(
     disposition: HumanReviewDisposition,

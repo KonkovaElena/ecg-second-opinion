@@ -212,6 +212,37 @@ describe('ECG API', () => {
       expect(res.headers['x-correlation-id']).toBeDefined();
       expect(res.headers['x-correlation-id'].length).toBeGreaterThan(0);
     });
+
+    it('should fail visibly when inference dispatch cannot be scheduled', async () => {
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+      const deps = makeDeps({
+        config,
+        dispatchInference: () => {
+          throw new Error('queue unavailable');
+        },
+      });
+      const localApp = createApp(deps);
+
+      const createRes = await withOperator(
+        request(localApp).post('/api/v1/cases'),
+        config,
+      )
+        .send(validCreatePayload)
+        .expect(503);
+
+      expect(createRes.body.code).toBe('ECG_INFERENCE_DISPATCH_FAILED');
+      expect(createRes.body.status).toBe('InferenceFailed');
+
+      const detailRes = await withOperator(
+        request(localApp).get(`/api/v1/cases/${createRes.body.caseId}`),
+        config,
+      ).expect(200);
+
+      expect(detailRes.body.status).toBe('InferenceFailed');
+      expect(detailRes.body.inferenceFailureReason).toBe('queue unavailable');
+
+      consoleErrorSpy.mockRestore();
+    });
   });
 
   describe('Async inference completes', () => {
