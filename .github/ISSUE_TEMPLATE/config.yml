@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security policy
+    url: https://github.com/KonkovaElena/ecg-second-opinion/blob/main/SECURITY.md
+    about: Do not open public issues for vulnerabilities. Read the private reporting guidance here first.
+  - name: Support
+    url: https://github.com/KonkovaElena/ecg-second-opinion/blob/main/SUPPORT.md
+    about: Read the current support expectations and supported channels before opening a request.

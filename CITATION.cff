@@ -1,0 +1,22 @@
+cff-version: 1.2.0
+title: "ECG Second Opinion"
+message: "If you use ECG Second Opinion in research or technical evaluation, please cite it as below."
+type: software
+authors:
+  - family-names: "Konkova"
+    given-names: "Elena"
+license: MIT
+version: "0.1.0"
+keywords:
+  - ecg
+  - electrocardiogram
+  - cardiology
+  - clinical-decision-support
+  - second-opinion
+  - clinician-in-the-loop
+  - fhir
+  - ptb-xl
+abstract: >-
+  ECG Second Opinion is a clinician-in-the-loop workflow API for ECG case intake,
+  asynchronous AI draft generation, safety-policy enforcement, mandatory human
+  review, finalization, and FHIR R4 report export in a research-use-only setting.

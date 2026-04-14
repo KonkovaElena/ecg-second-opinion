@@ -1,0 +1,24 @@
+name: Feature request
+description: Suggest a new capability or workflow improvement for ECG Second Opinion
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What workflow, clinical review step, or developer experience gap should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the expected behavior, API, or operator-facing outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Clinical or technical context
+      description: Relevant ECG categories, safety policy rules, interoperability needs, or runtime constraints.

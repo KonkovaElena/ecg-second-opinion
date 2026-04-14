@@ -1,0 +1,30 @@
+name: Bug report
+description: Report a reproducible bug in ECG Second Opinion
+labels:
+  - bug
+body:
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happened and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Include the smallest reproducible payload, route, and expected vs actual behavior.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Node.js version, npm version, and whether you used Docker or local runtime.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or response payloads
+      description: Redact secrets and never include PHI.
+      render: shell

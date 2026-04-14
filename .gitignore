@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+*.log
+coverage/
+.jest-results.json
+.DS_Store
