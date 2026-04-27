@@ -2,7 +2,7 @@
 // Root aggregate implementing the 6-state clinician-in-the-loop workflow.
 // Invariants enforced at the domain level — no case can bypass human review.
 
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import type {
   EcgCaseStatus,
   EcgRecordingRef,
@@ -44,7 +44,7 @@ export class EcgSecondOpinionCase {
     originalInterpretation?: string,
   ): EcgSecondOpinionCase {
     const now = new Date();
-    return new EcgSecondOpinionCase(uuidv4(), {
+    return new EcgSecondOpinionCase(randomUUID(), {
       recording,
       clinicalQuestion,
       originalInterpretation: originalInterpretation ?? null,
