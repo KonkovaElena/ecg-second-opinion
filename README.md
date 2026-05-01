@@ -1,5 +1,7 @@
 # ECG Second Opinion
 
+English | [Русский](README.ru.md)
+
 Clinician-in-the-loop ECG second-opinion workflow system.
 
 A standalone TypeScript API that orchestrates the full lifecycle of an ECG
@@ -33,7 +35,7 @@ finalization or delivery.
 - [Roadmap](#roadmap)
 - [Community](#community)
 - [License](#license)
-- [Русская версия](#ecg-second-opinion--система-второго-мнения-по-экг)
+- [Русская версия](README.ru.md)
 
 ## What This Project Does
 
@@ -200,7 +202,7 @@ Key design decisions:
 | Metrics | prom-client 15 (Prometheus-compatible) |
 | Testing | Jest 29, ts-jest, supertest |
 | Container | Docker multi-stage build, non-root `ecg` user |
-| Identifiers | UUIDv4 (uuid 11) |
+| Identifiers | Built-in `node:crypto.randomUUID()` |
 
 ## API Surface
 
